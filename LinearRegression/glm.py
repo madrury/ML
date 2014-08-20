@@ -2,7 +2,9 @@ import numpy as np
 
 class GeneralizedLinearRegressor(object):
 
-    def __init__(self, learn_rate = .1, conv_thres = .0005):
+    def __init__(self, learn_rate = .1, 
+                       conv_thres = .0005,
+                       method = 'grad'):
         self.conv_thres = conv_thres
         self.learn_rate = learn_rate
         self.coefs = None
@@ -10,11 +12,12 @@ class GeneralizedLinearRegressor(object):
 
     def fit(self, X, y):
         self._init_coefs(X)
-        dev, ddev = self._d_and_deviance(X, y)
+        dev, d_dev, dd_dev = self._deviance_derivs(X, y)
         improvement = float("inf")
         while improvement > self.conv_thres:
-            self._update_coefs(ddev)
-            new_dev, ddev = self._d_and_deviance(X, y)
+            print "Iter..."
+            self._update_coefs(d_dev, dd_dev)
+            new_dev, d_dev, dd_dev = self._deviance_derivs(X, y)
             improvement = np.abs(dev - new_dev)
             dev = new_dev
 
@@ -28,5 +31,11 @@ class GeneralizedLinearRegressor(object):
         n_coef = X.shape[1]
         self.coefs = np.zeros(n_coef)
 
-    def _update_coefs(self, d_deviance):
-        self.coefs = self.coefs - self.learn_rate*d_deviance
+    def _update_coefs(self, d_deviance, dd_deviance):
+        adjustment = np.linalg.solve(dd_deviance, d_deviance)
+        self.coefs = self.coefs - adjustment
+
+    def _deviance_derivs(self, X, y):
+        raise NotImplementedError("Deviance calculations must be implemented "
+                                  "in a subclass of GeneralizedLinearRegressor"
+              )
